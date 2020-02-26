@@ -1,0 +1,232 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "[vpc,4subnet,ec2,security grouo] and connect all to internet ",
+    "Parameters": {
+        "VPCcidrParameter": {
+            "Description": "This parameter is for VPC CIDR block",
+            "Type": "String",
+            "Default": "10.0.0.0/16"
+        },
+        "subnet1cidrParameter": {
+            "Description": "This parameter is for Subnet-1 CIDR block",
+            "Type": "String",
+            "Default": "10.0.0.0/24"
+        },
+        "subnet2cidrParameter": {
+            "Description": "This parameter is for Subnet-2 CIDR block",
+            "Type": "String",
+            "Default": "10.0.1.0/24"
+        },
+        "subnet3cidrParameter": {
+            "Description": "This parameter is for Subnet-3 CIDR block",
+            "Type": "String",
+            "Default": "10.0.2.0/24"
+        },
+        "subnet4cidrParameter": {
+            "Description": "This parameter is for Subnet-4 CIDR block",
+            "Type": "String",
+            "Default": "10.0.3.0/24"
+        },
+        "AZsubnet1": {
+            "Description": "AZ for subnet 1 ",
+            "Type": "AWS::EC2::AvailabilityZone::Name"
+        },
+        "AZsubnet2": {
+            "Description": "AZ for subnet 2 ",
+            "Type": "AWS::EC2::AvailabilityZone::Name"
+        },
+        "AZsubnet3": {
+            "Description": "AZ for subnet 3 ",
+            "Type": "AWS::EC2::AvailabilityZone::Name"
+        },
+        "AZsubnet4": {
+            "Description": "AZ for subnet 4 ",
+            "Type": "AWS::EC2::AvailabilityZone::Name"
+        }
+    },
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": {
+                    "Ref": "VPCcidrParameter"
+                }
+            }
+        },
+        "subnet1": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Ref": "AZsubnet1"
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Ref": "subnet1cidrParameter"
+                }
+            }
+        },
+        "subnet2": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Ref": "AZsubnet2"
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Ref": "subnet2cidrParameter"
+                }
+            }
+        },
+        "subnet3": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Ref": "AZsubnet3"
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Ref": "subnet3cidrParameter"
+                }
+            }
+        },
+        "subnet4": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Ref": "AZsubnet4"
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Ref": "subnet4cidrParameter"
+                }
+            }
+        },
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "This is for allowing ssh",
+                "GroupName": "AllowSSH",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "FromPort": 22,
+                        "IpProtocol": "tcp",
+                        "ToPort": 22,
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "FromPort": 80,
+                        "IpProtocol": "tcp",
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "MyEC2": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "KeyName": "zubair",
+                "ImageId": "ami-07545b3a1f4619f4b",
+                "InstanceType": "t2.micro",
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "SecurityGroup"
+                    }
+                ],
+                "SubnetId": {
+                    "Ref": "subnet1"
+                }
+            }
+        },
+        "igw": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {}
+        },
+        "AttachGateway": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "InternetGatewayId": {
+                    "Ref": "igw"
+                }
+            }
+        },
+        "routeTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "route": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "routeTable"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "igw"
+                }
+            }
+        },
+        "routeTableAssocForSub1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "subnet1"
+                },
+                "RouteTableId": {
+                    "Ref": "routeTable"
+                }
+            }
+        },
+        "routeTableAssocForSub2": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "subnet2"
+                },
+                "RouteTableId": {
+                    "Ref": "routeTable"
+                }
+            }
+        },
+        "routeTableAssocForSub3": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "subnet3"
+                },
+                "RouteTableId": {
+                    "Ref": "routeTable"
+                }
+            }
+        },
+        "routeTableAssocForSub4": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "subnet4"
+                },
+                "RouteTableId": {
+                    "Ref": "routeTable"
+                }
+            }
+        }
+    }
+}
